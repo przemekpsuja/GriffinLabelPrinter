@@ -55,3 +55,55 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# ==========================================
+# VISUAL STUDIO EXTENSIONS
+# ==========================================
+
+# Visual Studio cache and options directory (Crucial!)
+.vs/
+
+# User-specific files (window positions, open tabs, local paths)
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vbw
+
+# Roslyn compiler cache and VS tool analysis data
+*.ide/
+*.ntvs_analysis.dat
+.ntvs_analysis.dat
+
+# Temporary files generated during WPF project builds
+*_wpftmp.csproj
+*_wpftmp.vbproj
+
+# VS-specific test results and logs
+*.trx
+*.coverage
+*.coveragexml
+_Chutzpah*
+MSBuild_Logs/
+
+# Third-party IDE add-ons and tools (e.g., ReSharper, dotCover)
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+*.dotCover
+.axoCover/*
+!.axoCover/settings.json
+
+# Publish profiles (may contain sensitive deployment data/credentials)
+*.pubxml
+*.publishproj
+*.azurePubxml
+PublishScripts/
+
+# VS Code configuration (in case you or someone else uses it)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets

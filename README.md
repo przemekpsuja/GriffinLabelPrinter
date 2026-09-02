@@ -70,7 +70,7 @@ GriffinLabelPrinter/
 
 ## 🛠️ Roadmap / Milestones
 
-- [ ] **Phase 1:** Set up a clean WPF project in Visual Studio; add references to the b-PAC library and the WPF-UI NuGet package
+- [x] **Phase 1:** Set up a clean WPF project in Visual Studio; add references to the b-PAC library and the WPF-UI NuGet package
 - [ ] **Phase 2:** Implement `BrotherBpacService.cs` and run a first hardcoded print test, bypassing the UI
 - [ ] **Phase 3:** Configure a secure MS SQL connection (`appsettings.json`) and fetch the first data
 - [ ] **Phase 4:** Wire everything together in the XAML view (MVVM) and run final manual/automated tests

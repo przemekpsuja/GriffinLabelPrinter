@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices; // Marshal.ReleaseComObject
+using System.Windows; // MessageBox
 using bpac; // Interop.bpac.dll — reference to "Brother b-PAC 3.x Type Library" (COM)
 
 namespace GryfLabelManager.Services
@@ -8,9 +9,12 @@ namespace GryfLabelManager.Services
     public class BrotherBpacService : IPrinterService
     {
         // Object names INSIDE the .lbx template — must match the names given
-        // in P-touch Editor when the label was designed.
-        private const string BarcodeObjectName = "barcode1";
-        private const string TextObjectName = "text1";
+        // in P-touch Editor when the label was designed. Confirmed via
+        // ListTemplateObjects() against the current template file.
+        // Template also has a 'Tekst1' text object (unused here) and a 'Logo'
+        // picture object — those are static/fixed, no need to touch them from code.
+        private const string BarcodeObjectName = "Barcode";
+        private const string TextObjectName = "Description";
 
         // Relative path: Templates/<file>.lbx, resolved against the folder
         // where the .exe actually runs (bin/Debug or bin/Release), NOT the
@@ -19,7 +23,7 @@ namespace GryfLabelManager.Services
         private static readonly string TemplatePath = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
             "Templates",
-            "label_template.lbx");
+            "new_label.lbx");
 
         public void PrintLabel(string itemCode, string itemName, int copies)
         {
@@ -99,23 +103,91 @@ namespace GryfLabelManager.Services
         }
 
         /// <summary>
+        /// Diagnostic helper — NOT part of IPrinterService, call it manually
+        /// once to find out what b-PAC actually sees inside the template
+        /// (Name + Type of every object), instead of guessing in P-touch Editor.
+        /// Delete this once BarcodeObjectName/TextObjectName are confirmed.
+        /// </summary>
+        public void ListTemplateObjects()
+        {
+            Type? documentType = Type.GetTypeFromProgID("bpac.Document");
+            if (documentType is null)
+            {
+                MessageBox.Show("COM type 'bpac.Document' not found.", "Diagnostics — FAILED");
+                return;
+            }
+
+            object? instance = Activator.CreateInstance(documentType);
+            if (instance is null)
+            {
+                MessageBox.Show("Failed to create bpac.Document instance.", "Diagnostics — FAILED");
+                return;
+            }
+
+            Document doc = (Document)instance;
+
+            try
+            {
+                if (!File.Exists(TemplatePath))
+                {
+                    MessageBox.Show($"Template not found at: {TemplatePath}", "Diagnostics — FAILED");
+                    return;
+                }
+
+                if (!doc.Open(TemplatePath))
+                {
+                    MessageBox.Show($"Failed to open template: {TemplatePath}", "Diagnostics — FAILED");
+                    return;
+                }
+
+                // doc.Objects is the collection of every object placed on the label.
+                // Using "dynamic" here on purpose: the exact interop type name for
+                // a single object (FObject / Object / IFObject / ...) varies between
+                // b-PAC SDK versions, so late-binding via dynamic avoids guessing it.
+                // Each item still exposes .Name and .Type at runtime via COM.
+                var lines = new System.Text.StringBuilder();
+                foreach (dynamic obj in doc.Objects)
+                {
+                    lines.AppendLine($"Name: '{obj.Name}'   Type: {obj.Type}");
+                }
+
+                MessageBox.Show(
+                    lines.Length > 0 ? lines.ToString() : "Template has no objects at all.",
+                    "Objects found in template",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            finally
+            {
+                doc.Close();
+                Marshal.ReleaseComObject(doc);
+            }
+        }
+
+        /// <summary>
         /// Phase 2 — hardcoded smoke test: no UI, no SQL, just verifying the
         /// chain App -> b-PAC -> Brother GL-600 works at all.
         /// Call this temporarily from App.xaml.cs -> OnStartup().
         /// </summary>
         public void PrintHardcodedTest()
         {
-            Console.WriteLine("Starting print test (Phase 2)...");
-
+            // Using MessageBox instead of Console.WriteLine — a WPF app has no
+            // console window by default, so Console output is invisible unless
+            // you're watching the Output/Debug window in Visual Studio.
             try
             {
                 PrintLabel(
                     itemCode: "0008110661N",   // hardcoded code, keeping the "N" and leading zeros
-                    itemName: "TEST - Sruba M8x40 ocynk",
+                    //itemName: "TEST - Sruba M8x40 ocynk",
+                    itemName: "TEST ZAWIJANIA TEKSTU - System.Windows.Controls.Ribbon.dll”. Pominięto ładowanie symboli. Moduł jest zoptymalizowany i włączono opcję debugera „Tylko mój kod”.",
                     copies: 1
                 );
 
-                Console.WriteLine("OK: print job sent to Brother GL-600.");
+                MessageBox.Show(
+                    "Print job sent to Brother GL-600.",
+                    "Print test — OK",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -123,7 +195,11 @@ namespace GryfLabelManager.Services
                 // - b-PAC COM library not registered (Brother driver/SDK not installed)
                 // - wrong .lbx path / file missing from output folder
                 // - printer off / disconnected / wrong Windows printer name
-                Console.WriteLine($"Print test FAILED: {ex.Message}");
+                MessageBox.Show(
+                    ex.Message,
+                    "Print test — FAILED",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
     }

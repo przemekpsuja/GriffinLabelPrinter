@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GryfLabelManager.Services;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -13,5 +14,16 @@ namespace GriffinLabelPrinter
     /// </summary>
     public partial class App : Application
     {
+        /*
+        #if DEBUG
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e); // zawsze najpierw wywołaj bazową implementację
+
+            // --- TYMCZASOWY test Fazy 2, usunąć po weryfikacji druku ---
+                new BrotherBpacService().PrintHardcodedTest();
+        }
+        #endif
+        */
     }
 }

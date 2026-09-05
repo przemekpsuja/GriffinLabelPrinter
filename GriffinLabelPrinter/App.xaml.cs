@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using GryfLabelManager.Services;
 using GryfLabelManager.ViewModels;
 using GryfLabelManager.Views;
@@ -16,10 +17,16 @@ namespace GryfLabelManager
 
             ISymfoniaService symfoniaService = new SymfoniaService(connectionString);
 
+            // Tymczasowo (brak dostępu do SQL) - towary czytane z pliku CSV w folderze template.
+            // Docelowo: spraw, żeby SymfoniaService implementował też IProductCatalogService
+            // (ma już GetAllProductsAsync) i podmień poniższą linię na tamtą implementację.
+            var csvPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "towary.csv");
+            IProductCatalogService productCatalogService = new CsvProductCatalogService(csvPath);
+
             // TODO: podmień na Twój BrotherBpacService z Fazy 2, gdy będzie gotowy
             IPrinterService printerService = new MockPrinterService();
 
-            var mainViewModel = new MainViewModel(symfoniaService, printerService);
+            var mainViewModel = new MainViewModel(symfoniaService, productCatalogService, printerService);
             var mainWindow = new MainWindow(mainViewModel);
             mainWindow.Show();
         }

@@ -24,6 +24,22 @@ namespace GryfLabelManager.Helpers
     }
 
     /// <summary>
+    /// Odwrotność EnumToVisibilityConverter - Visible, gdy wartość NIE pasuje do parametru.
+    /// Użyte np. do ukrycia przycisku "Odśwież" w trybie Ręcznym.
+    /// </summary>
+    public class EnumNotEqualToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null || parameter == null) return Visibility.Visible;
+            return value.ToString() == parameter.ToString() ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+    }
+
+    /// <summary>
     /// Porównuje enum z parametrem i zwraca bool - do bindowania RadioButton.IsChecked
     /// do wartości enuma (żeby zaznaczony przycisk odzwierciedlał aktualny tryb).
     /// </summary>

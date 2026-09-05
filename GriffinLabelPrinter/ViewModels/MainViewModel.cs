@@ -1,6 +1,7 @@
 ﻿using GryfLabelManager.Helpers;
 using GryfLabelManager.Models;
 using GryfLabelManager.Services;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,17 +13,24 @@ namespace GryfLabelManager.ViewModels
     public class MainViewModel : BaseViewModel
     {
         private readonly ISymfoniaService _symfoniaService;
+        private readonly IProductCatalogService _productCatalogService;
         private readonly IPrinterService _printerService;
 
-        public MainViewModel(ISymfoniaService symfoniaService, IPrinterService printerService)
+        // cache nieprzefiltrowanej listy towarów - potrzebne do wyszukiwarki,
+        // żeby nie odpytywać CSV/SQL przy każdym wpisanym znaku
+        private List<LabelItem> _allProducts = new List<LabelItem>();
+
+        public MainViewModel(ISymfoniaService symfoniaService, IProductCatalogService productCatalogService, IPrinterService printerService)
         {
             _symfoniaService = symfoniaService;
+            _productCatalogService = productCatalogService;
             _printerService = printerService;
 
             Documents = new ObservableCollection<DocumentHeader>();
             Items = new ObservableCollection<LabelItem>();
 
             SwitchModeCommand = new AsyncRelayCommand(async param => await SwitchModeAsync((ViewMode)param));
+            RefreshCommand = new AsyncRelayCommand(async _ => await RefreshCurrentModeAsync());
             DodajRecznieCommand = new RelayCommands(_ => DodajReczniePozycje(), _ => !string.IsNullOrWhiteSpace(RecznyKod));
             UsunPozycjeCommand = new RelayCommands(param => Items.Remove((LabelItem)param));
             DrukujCommand = new RelayCommands(_ => Drukuj(), _ => Items.Any(i => i.IsSelected));
@@ -41,6 +49,7 @@ namespace GryfLabelManager.ViewModels
         }
 
         public System.Windows.Input.ICommand SwitchModeCommand { get; }
+        public System.Windows.Input.ICommand RefreshCommand { get; }
 
         private async Task SwitchModeAsync(ViewMode mode)
         {
@@ -50,23 +59,98 @@ namespace GryfLabelManager.ViewModels
             switch (mode)
             {
                 case ViewMode.Dokumenty:
+                    // przy zwykłym przełączeniu trybu korzystamy z cache, jeśli już wczytany raz
                     if (Documents.Count == 0)
-                    {
-                        var docs = await _symfoniaService.GetRecentDocumentsAsync();
-                        Documents = new ObservableCollection<DocumentHeader>(docs);
-                        OnPropertyChanged(nameof(Documents));
-                    }
+                        await LoadDocumentsAsync();
                     break;
 
                 case ViewMode.WszystkieTowary:
-                    var products = await _symfoniaService.GetAllProductsAsync();
-                    foreach (var p in products) Items.Add(p);
+                    await LoadAllProductsAsync();
                     break;
 
                 case ViewMode.Reczny:
                     // pusta siatka - użytkownik dodaje pozycje ręcznie
                     break;
             }
+        }
+
+        /// <summary>
+        /// Przycisk "Odśwież" - wymusza ponowne pobranie danych z Symfonii
+        /// dla aktualnie aktywnego trybu (Dokumenty albo Wszystkie towary).
+        /// W trybie Ręcznym nic nie robi, bo nie ma tam danych z bazy.
+        /// </summary>
+        private async Task RefreshCurrentModeAsync()
+        {
+            switch (CurrentMode)
+            {
+                case ViewMode.Dokumenty:
+                    await LoadDocumentsAsync();
+                    // po odświeżeniu listy dokumentów siatka pozycji też traci sens - czyścimy
+                    SelectedDocument = null;
+                    Items.Clear();
+                    break;
+
+                case ViewMode.WszystkieTowary:
+                    await LoadAllProductsAsync();
+                    break;
+            }
+        }
+
+        private async Task LoadDocumentsAsync()
+        {
+            var docs = await _symfoniaService.GetRecentDocumentsAsync();
+            Documents = new ObservableCollection<DocumentHeader>(docs);
+            OnPropertyChanged(nameof(Documents));
+        }
+
+        private async Task LoadAllProductsAsync()
+        {
+            Items.Clear();
+            SearchText = string.Empty; // czyścimy filtr przy odświeżeniu/wejściu do zakładki
+            _allProducts = await _productCatalogService.GetAllProductsAsync();
+            foreach (var p in _allProducts) Items.Add(p);
+        }
+
+        // ---------- Wyszukiwarka (tryb: Wszystkie towary) ----------
+
+        private string _searchText = string.Empty;
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                _searchText = value;
+                OnPropertyChanged();
+                ApplySearchFilter();
+            }
+        }
+
+        /// <summary>
+        /// Filtruje po Kod i Nazwa, ignorując wielkość liter oraz białe znaki
+        /// (spacje, tabulatory) zarówno we frazie szukanej, jak i w danych -
+        /// dzięki temu np. "0008 1106" znajdzie "0008110661N".
+        /// </summary>
+        private void ApplySearchFilter()
+        {
+            if (CurrentMode != ViewMode.WszystkieTowary) return;
+
+            Items.Clear();
+            var query = Normalize(_searchText);
+
+            var filtered = string.IsNullOrEmpty(query)
+                ? _allProducts
+                : _allProducts.Where(p =>
+                    Normalize(p.Kod).Contains(query) ||
+                    Normalize(p.Nazwa).Contains(query));
+
+            foreach (var p in filtered) Items.Add(p);
+        }
+
+        private static string Normalize(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            // usuwamy wszystkie białe znaki i sprowadzamy do wielkich liter
+            return new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
         }
 
         // ---------- Tryb: Dokumenty PZ/PW ----------

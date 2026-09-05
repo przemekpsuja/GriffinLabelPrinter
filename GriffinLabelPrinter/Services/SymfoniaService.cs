@@ -5,7 +5,7 @@ using GryfLabelManager.Models;
 
 namespace GryfLabelManager.Services
 {
-    public class SymfoniaService : ISymfoniaService
+    public class SymfoniaService : ISymfoniaService, IProductCatalogService
     {
         private readonly string _connectionString;
 

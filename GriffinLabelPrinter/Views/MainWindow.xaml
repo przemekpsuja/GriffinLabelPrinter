@@ -8,6 +8,7 @@
     <Window.Resources>
         <helpers:EnumToVisibilityConverter x:Key="EnumToVisibility"/>
         <helpers:EnumToBooleanConverter x:Key="EnumToBoolean"/>
+        <helpers:EnumNotEqualToVisibilityConverter x:Key="EnumNotEqualToVisibility"/>
     </Window.Resources>
 
     <Grid Margin="12">
@@ -23,28 +24,48 @@
         </Grid.RowDefinitions>
 
         <!-- ============ PRZEŁĄCZNIK TRYBU ============ -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-            <RadioButton Content="Dokumenty PZ/PW" GroupName="Tryb" Padding="10,5" Margin="0,0,8,0"
-                         IsChecked="{Binding CurrentMode, Converter={StaticResource EnumToBoolean}, ConverterParameter=Dokumenty}"
-                         Command="{Binding SwitchModeCommand}" CommandParameter="{x:Static models:ViewMode.Dokumenty}"/>
-            <RadioButton Content="Wszystkie towary" GroupName="Tryb" Padding="10,5" Margin="0,0,8,0"
-                         IsChecked="{Binding CurrentMode, Converter={StaticResource EnumToBoolean}, ConverterParameter=WszystkieTowary}"
-                         Command="{Binding SwitchModeCommand}" CommandParameter="{x:Static models:ViewMode.WszystkieTowary}"/>
-            <RadioButton Content="Ręczny wpis" GroupName="Tryb" Padding="10,5"
-                         IsChecked="{Binding CurrentMode, Converter={StaticResource EnumToBoolean}, ConverterParameter=Reczny}"
-                         Command="{Binding SwitchModeCommand}" CommandParameter="{x:Static models:ViewMode.Reczny}"/>
-        </StackPanel>
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <Button DockPanel.Dock="Right" Content="⟳ Odśwież" Padding="10,5"
+                    Command="{Binding RefreshCommand}"
+                    Visibility="{Binding CurrentMode, Converter={StaticResource EnumNotEqualToVisibility}, ConverterParameter=Reczny}"/>
+
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Content="Dokumenty PZ/PW" GroupName="Tryb" Padding="10,5" Margin="0,0,8,0"
+                             IsChecked="{Binding CurrentMode, Converter={StaticResource EnumToBoolean}, ConverterParameter=Dokumenty}"
+                             Command="{Binding SwitchModeCommand}" CommandParameter="{x:Static models:ViewMode.Dokumenty}"/>
+                <RadioButton Content="Wszystkie towary" GroupName="Tryb" Padding="10,5" Margin="0,0,8,0"
+                             IsChecked="{Binding CurrentMode, Converter={StaticResource EnumToBoolean}, ConverterParameter=WszystkieTowary}"
+                             Command="{Binding SwitchModeCommand}" CommandParameter="{x:Static models:ViewMode.WszystkieTowary}"/>
+                <RadioButton Content="Ręczny wpis" GroupName="Tryb" Padding="10,5"
+                             IsChecked="{Binding CurrentMode, Converter={StaticResource EnumToBoolean}, ConverterParameter=Reczny}"
+                             Command="{Binding SwitchModeCommand}" CommandParameter="{x:Static models:ViewMode.Reczny}"/>
+            </StackPanel>
+        </DockPanel>
 
         <!-- ============ TREŚĆ GŁÓWNA ============ -->
         <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- wyszukiwarka -->
+                <RowDefinition Height="*"/>
+                <!-- lista/siatka -->
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <!-- lista dokumentów pojawia się tylko w trybie Dokumenty -->
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
+            <!-- Wyszukiwarka - tylko tryb Wszystkie towary -->
+            <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+                       Visibility="{Binding CurrentMode, Converter={StaticResource EnumToVisibility}, ConverterParameter=WszystkieTowary}">
+                <TextBlock Text="Szukaj:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Szuka po kodzie i nazwie, bez uwzględniania wielkości liter i spacji"/>
+            </DockPanel>
+
             <!-- Lewa kolumna: lista dokumentów PZ/PW (widoczna tylko w trybie Dokumenty) -->
-            <Border Grid.Column="0" Width="230" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1"
+            <Border Grid.Row="1" Grid.Column="0" Width="230" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1"
                     Visibility="{Binding CurrentMode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Dokumenty}">
                 <DockPanel>
                     <TextBlock Text="Dokumenty" FontWeight="Bold" Margin="8" DockPanel.Dock="Top"/>
@@ -54,7 +75,7 @@
             </Border>
 
             <!-- Wspólna siatka pozycji do druku - ta sama dla wszystkich 3 trybów -->
-            <DataGrid Grid.Column="1" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
+            <DataGrid Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
                       CanUserAddRows="False" CanUserDeleteRows="False">
                 <DataGrid.Columns>
                     <DataGridCheckBoxColumn Header="Drukuj" Binding="{Binding IsSelected, Mode=TwoWay}" Width="55"/>

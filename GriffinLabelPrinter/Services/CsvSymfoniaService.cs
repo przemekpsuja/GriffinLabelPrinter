@@ -26,10 +26,25 @@ namespace GryfLabelManager.Services
             _csvPath = csvPath;
         }
 
+        public Task<List<LabelItem>> GetAllProductsAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<LabelItem>> GetDocumentItemsAsync(int documentId)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<List<LabelItem>> GetItemsAsync()
         {
             _cache ??= await LoadFromCsvAsync();
             return _cache;
+        }
+
+        public Task<List<DocumentHeader>> GetRecentDocumentsAsync()
+        {
+            throw new NotImplementedException();
         }
 
         private async Task<List<LabelItem>> LoadFromCsvAsync()

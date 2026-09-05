@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices; // Marshal.ReleaseComObject
 using System.Windows; // MessageBox
-using bpac; // Interop.bpac.dll — reference to "Brother b-PAC 3.x Type Library" (COM)
+using bpac;
+using GryfLabelManager.Models; // Interop.bpac.dll — reference to "Brother b-PAC 3.x Type Library" (COM)
 
 namespace GryfLabelManager.Services
 {
@@ -201,6 +203,11 @@ namespace GryfLabelManager.Services
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        public void Print(IEnumerable<LabelItem> items)
+        {
+            throw new NotImplementedException();
         }
     }
 }

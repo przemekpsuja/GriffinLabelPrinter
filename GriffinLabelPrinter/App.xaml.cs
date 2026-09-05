@@ -1,29 +1,27 @@
-﻿using GryfLabelManager.Services;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
+using GryfLabelManager.Services;
+using GryfLabelManager.ViewModels;
+using GryfLabelManager.Views;
 
-namespace GriffinLabelPrinter
+namespace GryfLabelManager
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
-        /*
-        #if DEBUG
         protected override void OnStartup(StartupEventArgs e)
         {
-            base.OnStartup(e); // zawsze najpierw wywołaj bazową implementację
+            base.OnStartup(e);
 
-            // --- TYMCZASOWY test Fazy 2, usunąć po weryfikacji druku ---
-                new BrotherBpacService().PrintHardcodedTest();
+            // TODO: wczytaj z appsettings.json (Faza 3 z karty projektu) zamiast na sztywno.
+            var connectionString = "Server=localhost;Database=Symfonia;Trusted_Connection=True;TrustServerCertificate=True;";
+
+            ISymfoniaService symfoniaService = new SymfoniaService(connectionString);
+
+            // TODO: podmień na Twój BrotherBpacService z Fazy 2, gdy będzie gotowy
+            IPrinterService printerService = new MockPrinterService();
+
+            var mainViewModel = new MainViewModel(symfoniaService, printerService);
+            var mainWindow = new MainWindow(mainViewModel);
+            mainWindow.Show();
         }
-        #endif
-        */
     }
 }

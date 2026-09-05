@@ -3,13 +3,16 @@ using System.Runtime.CompilerServices;
 
 namespace GryfLabelManager.ViewModels
 {
-    // Bazowa klasa dla wszystkich ViewModeli - odchudza kod, żeby nie powtarzać
-    // implementacji INotifyPropertyChanged w każdym ViewModelu osobno.
-    public class BaseViewModel : INotifyPropertyChanged
+    /// <summary>
+    /// Bazowa klasa dla wszystkich ViewModeli i modeli bindowanych w UI.
+    /// [CallerMemberName] sam wstawia nazwę property, więc w setterach
+    /// wystarczy wywołać OnPropertyChanged() bez argumentu.
+    /// </summary>
+    public abstract class BaseViewModel : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

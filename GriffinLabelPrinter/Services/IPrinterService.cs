@@ -1,22 +1,25 @@
-﻿namespace GryfLabelManager.Services
+﻿using System.Collections.Generic;
+using GryfLabelManager.Models;
+
+namespace GryfLabelManager.Services
 {
-    /// <summary>
-    /// Abstraction over the label printer. The ViewModel talks only to this
-    /// interface, so the b-PAC implementation stays swappable/testable.
-    /// </summary>
     public interface IPrinterService
     {
-        /// <summary>
-        /// Prints a single label based on data pulled from Symfonia.
-        /// </summary>
-        /// <param name="itemCode">Barcode value (Code128), e.g. "0008110661N"</param>
-        /// <param name="itemName">Human-readable text printed under the barcode</param>
-        /// <param name="copies">Number of label copies to print</param>
-        void PrintLabel(string itemCode, string itemName, int copies);
+        /// <summary>Drukuje przekazane pozycje na Brother GL-600 przez b-PAC.</summary>
+        void Print(IEnumerable<LabelItem> items);
+    }
 
-        /// <summary>
-        /// Hardcoded smoke test — Phase 2, no UI involved.
-        /// </summary>
-        void PrintHardcodedTest();
+    /// <summary>
+    /// Tymczasowa atrapa - podmień na Twój BrotherBpacService z Fazy 2
+    /// (ten z referencją COM do Interop.bpac.dll). Trzymam ją tutaj tylko
+    /// żeby MainViewModel dało się skompilować i przetestować widoki bez drukarki.
+    /// </summary>
+    public class MockPrinterService : IPrinterService
+    {
+        public void Print(IEnumerable<LabelItem> items)
+        {
+            foreach (var item in items)
+                System.Diagnostics.Debug.WriteLine($"[MOCK PRINT] {item.Kod} x{item.Ilosc} - {item.Nazwa}");
+        }
     }
 }

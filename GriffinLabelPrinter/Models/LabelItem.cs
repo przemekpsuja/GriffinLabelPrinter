@@ -1,38 +1,42 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using GryfLabelManager.ViewModels;
 
 namespace GryfLabelManager.Models
 {
-    // Reprezentuje jeden towar na liście. Implementuje INotifyPropertyChanged,
-    // żeby checkbox (IsSelected) i pole ilości (IloscDoDruku) w UI aktualizowały się
-    // automatycznie przy zmianie (two-way binding w WPF).
-    public class LabelItem : INotifyPropertyChanged
+    /// <summary>
+    /// Pojedynczy wiersz w siatce do druku. Ten sam model jest używany
+    /// niezależnie od trybu (dokument PZ/PW, wszystkie towary, wpis ręczny),
+    /// dzięki czemu logika drukowania jest jedna dla całej aplikacji.
+    /// </summary>
+    public class LabelItem : BaseViewModel
     {
-        // WAŻNE: Kod jako string, nie int! Symfonia ma kody z wiodącymi zerami
-        // (np. "0008110661N") - int by je ucięło.
-        public string Kod { get; set; } = string.Empty;
+        // Kod towaru - String! (Symfonia przechowuje kody z wiodącymi zerami, np. 0008110661N)
+        public string Kod { get; set; }
 
-        public string Nazwa { get; set; } = string.Empty;
+        public string Nazwa { get; set; }
 
-        private bool _isSelected;
+        private int _ilosc = 1;
+        public int Ilosc
+        {
+            get => _ilosc;
+            set
+            {
+                // Nie pozwalamy zejść poniżej 1 - po co drukować 0 etykiet
+                if (value < 1) value = 1;
+                _ilosc = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _isSelected = true;
         public bool IsSelected
         {
             get => _isSelected;
             set { _isSelected = value; OnPropertyChanged(); }
         }
 
-        private int _iloscDoDruku = 1;
-        public int IloscDoDruku
-        {
-            get => _iloscDoDruku;
-            set { _iloscDoDruku = value; OnPropertyChanged(); }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+        // True, jeśli pozycja pochodzi z ręcznego wpisu (nie ma jej w Symfonii).
+        // Przydatne np. gdybyśmy chcieli inaczej oznaczyć takie wiersze w UI.
+        public bool IsManual { get; set; }
+        public int IloscDoDruku { get; internal set; }
     }
 }

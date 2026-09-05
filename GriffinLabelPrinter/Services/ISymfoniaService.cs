@@ -4,12 +4,15 @@ using GryfLabelManager.Models;
 
 namespace GryfLabelManager.Services
 {
-    // Abstrakcja źródła danych towarowych.
-    // Dzięki temu ViewModel nie wie i nie musi wiedzieć, czy dane pochodzą
-    // z CSV (teraz) czy z SQL Symfonii (docelowo w Fazie 3b, po odblokowaniu dostępu).
-    // Podmiana implementacji = jedna linijka w App.xaml.cs, zero zmian w ViewModelu.
     public interface ISymfoniaService
     {
-        Task<List<LabelItem>> GetItemsAsync();
+        /// <summary>Ostatnie dokumenty PZ/PW - do trybu "Dokumenty".</summary>
+        Task<List<DocumentHeader>> GetRecentDocumentsAsync();
+
+        /// <summary>Pozycje wybranego dokumentu.</summary>
+        Task<List<LabelItem>> GetDocumentItemsAsync(int documentId);
+
+        /// <summary>Cała kartoteka towarów - do trybu "Wszystkie towary".</summary>
+        Task<List<LabelItem>> GetAllProductsAsync();
     }
 }

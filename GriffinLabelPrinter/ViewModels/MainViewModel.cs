@@ -1,116 +1,160 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows.Data;
-using System.Windows.Threading;
-using GryfLabelManager.Helpers;
+﻿using GryfLabelManager.Helpers;
 using GryfLabelManager.Models;
 using GryfLabelManager.Services;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using Wpf.Ui.Input;
 
 namespace GryfLabelManager.ViewModels
 {
     public class MainViewModel : BaseViewModel
     {
         private readonly ISymfoniaService _symfoniaService;
-        private readonly DispatcherTimer _searchDebounceTimer;
+        private readonly IPrinterService _printerService;
 
-        // Pełna lista towarów wczytana z serwisu (CSV lub docelowo SQL).
-        public ObservableCollection<LabelItem> Items { get; } = new();
-
-        // Widok nad Items, który obsługuje filtrowanie bez przeładowywania danych.
-        // ListView w XAML binduje się do TEGO, nie bezpośrednio do Items.
-        public ICollectionView ItemsView { get; }
-
-        private string _searchText = string.Empty;
-        public string SearchText
-        {
-            get => _searchText;
-            set
-            {
-                _searchText = value;
-                OnPropertyChanged();
-                // Debounce: nie odświeżamy filtra przy każdym znaku, tylko po 250ms ciszy.
-                // Przy dużej liście (kilka tysięcy pozycji) zapobiega to laggom podczas pisania.
-                _searchDebounceTimer.Stop();
-                _searchDebounceTimer.Start();
-            }
-        }
-
-        private bool _isLoading;
-        public bool IsLoading
-        {
-            get => _isLoading;
-            set { _isLoading = value; OnPropertyChanged(); }
-        }
-
-        public RelayCommand DrukujCommand { get; }
-        public RelayCommand ZaznaczWszystkoCommand { get; }
-
-        public MainViewModel(ISymfoniaService symfoniaService)
+        public MainViewModel(ISymfoniaService symfoniaService, IPrinterService printerService)
         {
             _symfoniaService = symfoniaService;
+            _printerService = printerService;
 
-            ItemsView = CollectionViewSource.GetDefaultView(Items);
-            ItemsView.Filter = FilterItem;
+            Documents = new ObservableCollection<DocumentHeader>();
+            Items = new ObservableCollection<LabelItem>();
 
-            _searchDebounceTimer = new DispatcherTimer { Interval = System.TimeSpan.FromMilliseconds(250) };
-            _searchDebounceTimer.Tick += (s, e) =>
-            {
-                _searchDebounceTimer.Stop();
-                ItemsView.Refresh();
-            };
+            SwitchModeCommand = new AsyncRelayCommand(async param => await SwitchModeAsync((ViewMode)param));
+            DodajRecznieCommand = new RelayCommands(_ => DodajReczniePozycje(), _ => !string.IsNullOrWhiteSpace(RecznyKod));
+            UsunPozycjeCommand = new RelayCommands(param => Items.Remove((LabelItem)param));
+            DrukujCommand = new RelayCommands(_ => Drukuj(), _ => Items.Any(i => i.IsSelected));
 
-            DrukujCommand = new RelayCommand(_ => Drukuj(), _ => Items.Any(i => i.IsSelected));
-            ZaznaczWszystkoCommand = new RelayCommand(_ => ZaznaczWszystkoWidoczne());
-
-            _ = LoadDataAsync(); // fire-and-forget na starcie; UI pokazuje IsLoading w międzyczasie
+            // Domyślny tryb startowy
+            _ = SwitchModeAsync(ViewMode.Dokumenty);
         }
 
-        private async Task LoadDataAsync()
+        // ---------- Przełącznik trybu ----------
+
+        private ViewMode _currentMode;
+        public ViewMode CurrentMode
         {
-            IsLoading = true;
-            try
+            get => _currentMode;
+            set { _currentMode = value; OnPropertyChanged(); }
+        }
+
+        public System.Windows.Input.ICommand SwitchModeCommand { get; }
+
+        private async Task SwitchModeAsync(ViewMode mode)
+        {
+            CurrentMode = mode;
+            Items.Clear();
+
+            switch (mode)
             {
-                var towary = await _symfoniaService.GetItemsAsync();
-                Items.Clear();
-                foreach (var item in towary)
-                    Items.Add(item);
+                case ViewMode.Dokumenty:
+                    if (Documents.Count == 0)
+                    {
+                        var docs = await _symfoniaService.GetRecentDocumentsAsync();
+                        Documents = new ObservableCollection<DocumentHeader>(docs);
+                        OnPropertyChanged(nameof(Documents));
+                    }
+                    break;
+
+                case ViewMode.WszystkieTowary:
+                    var products = await _symfoniaService.GetAllProductsAsync();
+                    foreach (var p in products) Items.Add(p);
+                    break;
+
+                case ViewMode.Reczny:
+                    // pusta siatka - użytkownik dodaje pozycje ręcznie
+                    break;
             }
-            finally
+        }
+
+        // ---------- Tryb: Dokumenty PZ/PW ----------
+
+        public ObservableCollection<DocumentHeader> Documents { get; private set; }
+
+        private DocumentHeader _selectedDocument;
+        public DocumentHeader SelectedDocument
+        {
+            get => _selectedDocument;
+            set
             {
-                IsLoading = false;
+                _selectedDocument = value;
+                OnPropertyChanged();
+                // Wybór dokumentu w ListBoxie od razu wczytuje jego pozycje do wspólnej siatki
+                _ = LoadDocumentItemsAsync(value);
             }
         }
 
-        // Filtr: ignoruje wielkość liter i WSZYSTKIE białe znaki (spacje, taby),
-        // żeby np. "Karnet24godz" znalazło "Karnet 24-godz." - przydatne przy
-        // wyszukiwaniu z ręki na magazynie, gdzie nikt nie wpisuje idealnie.
-        private bool FilterItem(object obj)
+        private async Task LoadDocumentItemsAsync(DocumentHeader doc)
         {
-            if (string.IsNullOrWhiteSpace(SearchText)) return true;
-            if (obj is not LabelItem item) return false;
-
-            return Normalize(item.Kod).Contains(Normalize(SearchText))
-                || Normalize(item.Nazwa).Contains(Normalize(SearchText));
+            if (doc == null) return;
+            SelectedDocument = doc;
+            Items.Clear();
+            var pozycje = await _symfoniaService.GetDocumentItemsAsync(doc.Id);
+            foreach (var p in pozycje) Items.Add(p);
         }
 
-        private static string Normalize(string s) =>
-            Regex.Replace(s, @"\s+", "").ToLowerInvariant();
+        // ---------- Tryb: Ręczny wpis ----------
 
-        // Zaznacza tylko to, co aktualnie widoczne po filtrze (nie całą, niewidoczną resztę listy).
-        private void ZaznaczWszystkoWidoczne()
+        private string _recznyKod;
+        public string RecznyKod
         {
-            foreach (var obj in ItemsView.Cast<LabelItem>())
-                obj.IsSelected = true;
+            get => _recznyKod;
+            set { _recznyKod = value; OnPropertyChanged(); }
         }
+
+        private string _recznyNazwa;
+        public string RecznyNazwa
+        {
+            get => _recznyNazwa;
+            set { _recznyNazwa = value; OnPropertyChanged(); }
+        }
+
+        private int _recznaIlosc = 1;
+        public int RecznaIlosc
+        {
+            get => _recznaIlosc;
+            set { _recznaIlosc = value < 1 ? 1 : value; OnPropertyChanged(); }
+        }
+
+        public System.Windows.Input.ICommand DodajRecznieCommand { get; }
+
+        private void DodajReczniePozycje()
+        {
+            Items.Add(new LabelItem
+            {
+                Kod = RecznyKod?.Trim(),
+                Nazwa = RecznyNazwa?.Trim(),
+                Ilosc = RecznaIlosc,
+                IsSelected = true,
+                IsManual = true
+            });
+
+            // czyścimy formularz pod kolejny wpis
+            RecznyKod = string.Empty;
+            RecznyNazwa = string.Empty;
+            RecznaIlosc = 1;
+        }
+
+        // ---------- Wspólne dla wszystkich trybów ----------
+
+        public ObservableCollection<LabelItem> Items { get; }
+
+        public System.Windows.Input.ICommand UsunPozycjeCommand { get; }
+        public System.Windows.Input.ICommand DrukujCommand { get; }
 
         private void Drukuj()
         {
-            var doWydruku = Items.Where(i => i.IsSelected).ToList();
-            // TODO Faza 2 (BrotherBpacService): tu podpięcie wysyłki do drukarki.
-            // Na razie zostawiamy jako stub - kolejny krok po zamknięciu warstwy danych.
+            var doWydruku = Items.Where(i => i.IsSelected && i.Ilosc > 0).ToList();
+            if (doWydruku.Count == 0)
+            {
+                MessageBox.Show("Zaznacz co najmniej jedną pozycję do wydruku.", "GryfLabelManager",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            _printerService.Print(doWydruku);
         }
     }
 }

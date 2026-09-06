@@ -14,14 +14,14 @@
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- przełącznik trybu -->
             <RowDefinition Height="*"/>
-            <!-- lista dokumentów (opcjonalnie) + siatka -->
             <RowDefinition Height="Auto"/>
-            <!-- panel ręcznego wpisu -->
+            <RowDefinition Height="150"/>
+            <!-- NOWY: podsumowanie do druku -->
             <RowDefinition Height="Auto"/>
-            <!-- przycisk Drukuj -->
+            <!-- było Row="3", teraz przycisk to Row="4" -->
         </Grid.RowDefinitions>
+  
 
         <!-- ============ PRZEŁĄCZNIK TRYBU ============ -->
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
@@ -112,8 +112,25 @@
             </StackPanel>
         </Border>
 
+
+        <!-- ============ PODSUMOWANIE - CO JEST ZAZNACZONE DO DRUKU ============ -->
+        <Border Grid.Row="3" Margin="0,12,0,0" BorderBrush="#DDD" BorderThickness="1">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" FontWeight="Bold" Margin="8,6"
+                   Text="{Binding SelectedCount, StringFormat='Do wydruku: {0} pozycji'}"/>
+                <DataGrid ItemsSource="{Binding SelectedItems}" AutoGenerateColumns="False"
+                  IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150"/>
+                        <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*"/>
+                        <DataGridTextColumn Header="Ilość" Binding="{Binding Ilosc}" Width="70"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+        
         <!-- ============ DRUKUJ ============ -->
-        <Button Grid.Row="3" Content="DRUKUJ" FontSize="16" FontWeight="Bold" Padding="20,10"
+        <Button Grid.Row="4" Content="DRUKUJ" FontSize="16" FontWeight="Bold" Padding="20,10"
                 Margin="0,12,0,0" HorizontalAlignment="Right"
                 Command="{Binding DrukujCommand}"/>
     </Grid>

@@ -6,6 +6,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.ComponentModel;
+using System.Windows.Data;
 using Wpf.Ui.Input;
 
 namespace GryfLabelManager.ViewModels
@@ -20,6 +22,16 @@ namespace GryfLabelManager.ViewModels
         // żeby nie odpytywać CSV/SQL przy każdym wpisanym znaku
         private List<LabelItem> _allProducts = new List<LabelItem>();
 
+        // Widok "podsumowania" - te same obiekty LabelItem co w Items,
+        // ale przefiltrowane do samych zaznaczonych (IsSelected == true).
+        private readonly CollectionViewSource _selectedItemsSource;
+
+        // To jest to, co zbindujesz w XAML jako drugą siatkę na dole okna.
+        public ICollectionView SelectedItems => _selectedItemsSource.View;
+
+        // Licznik zaznaczonych - do wyświetlenia w nagłówku panelu.
+        public int SelectedCount => Items.Count(i => i.IsSelected);
+
         public MainViewModel(ISymfoniaService symfoniaService, IProductCatalogService productCatalogService, IPrinterService printerService)
         {
             _symfoniaService = symfoniaService;
@@ -29,6 +41,20 @@ namespace GryfLabelManager.ViewModels
             Documents = new ObservableCollection<DocumentHeader>();
             Items = new ObservableCollection<LabelItem>();
 
+            _selectedItemsSource = new CollectionViewSource { Source = Items };
+            _selectedItemsSource.Filter += (s, e) => e.Accepted = e.Item is LabelItem item && item.IsSelected;
+
+            // Live filtering - widok sam się przelicza przy zmianie IsSelected
+            // na dowolnym LabelItem (bez tego trzeba by ręcznie wołać Refresh()
+            // po każdym kliknięciu checkboxa "Drukuj" w głównej siatce).
+            if (_selectedItemsSource.View is ICollectionViewLiveShaping liveShaping)
+            {
+                liveShaping.IsLiveFiltering = true;
+                liveShaping.LiveFilteringProperties.Add(nameof(LabelItem.IsSelected));
+            }
+
+            // Gdy filtr coś doda/usunie z widoku, odśwież licznik w nagłówku.
+            _selectedItemsSource.View.CollectionChanged += (s, e) => OnPropertyChanged(nameof(SelectedCount));
             SwitchModeCommand = new AsyncRelayCommand(async param => await SwitchModeAsync((ViewMode)param));
             RefreshCommand = new AsyncRelayCommand(async _ => await RefreshCurrentModeAsync());
             DodajRecznieCommand = new RelayCommands(_ => DodajReczniePozycje(), _ => !string.IsNullOrWhiteSpace(RecznyKod));

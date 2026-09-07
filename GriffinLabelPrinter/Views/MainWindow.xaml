@@ -14,14 +14,16 @@
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- przełącznik trybu -->
+            <RowDefinition Height="2*"/>
+            <!-- lista dokumentów (opcjonalnie) + siatka -->
+            <RowDefinition Height="Auto"/>
+            <!-- panel ręcznego wpisu -->
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="150"/>
-            <!-- NOWY: podsumowanie do druku -->
-            <RowDefinition Height="Auto"/>
-            <!-- było Row="3", teraz przycisk to Row="4" -->
+            <!-- przycisk Drukuj -->
         </Grid.RowDefinitions>
-  
+
 
         <!-- ============ PRZEŁĄCZNIK TRYBU ============ -->
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
@@ -75,25 +77,22 @@
             </Border>
 
             <!-- Wspólna siatka pozycji do druku - ta sama dla wszystkich 3 trybów -->
-            <DataGrid Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
+            <DataGrid Grid.Row="1" Grid.Column="1" ItemsSource="{Binding BrowseItems}" AutoGenerateColumns="False"
                       CanUserAddRows="False" CanUserDeleteRows="False">
                 <DataGrid.Columns>
                     <DataGridCheckBoxColumn Header="Drukuj" Binding="{Binding IsSelected, Mode=TwoWay}" Width="55"/>
                     <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Ilość" Binding="{Binding Ilosc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                    <DataGridTemplateColumn Header="" Width="70">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="Usuń" Padding="4,2"
-                                        Command="{Binding DataContext.UsunPozycjeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
+        
+        <!-- Przycisk pod górną siatką (widoczny w Dokumenty / WszystkieTowary) -->
+        <Button Grid.Row="2" Content="Dodaj zaznaczone do wydruku →" Padding="10,5"
+            HorizontalAlignment="Right" Margin="0,8,0,0"
+            Command="{Binding DodajZaznaczoneCommand}"
+            Visibility="{Binding CurrentMode, Converter={StaticResource EnumNotEqualToVisibility}, ConverterParameter=Reczny}"/>
 
         <!-- ============ PANEL RĘCZNEGO WPISU (tylko tryb Reczny) ============ -->
         <Border Grid.Row="2" Margin="0,12,0,0" Padding="10" BorderBrush="#DDD" BorderThickness="1"
@@ -124,6 +123,30 @@
                         <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150"/>
                         <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*"/>
                         <DataGridTextColumn Header="Ilość" Binding="{Binding Ilosc}" Width="70"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+
+        <!-- NOWA sekcja: kolejka do wydruku -->
+        <Border Grid.Row="3" Margin="0,12,0,0" BorderBrush="#DDD" BorderThickness="1">
+            <DockPanel>
+                <TextBlock Text="Do wydruku" FontWeight="Bold" Margin="8" DockPanel.Dock="Top"/>
+                <DataGrid ItemsSource="{Binding PrintQueue}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Ilość" Binding="{Binding Ilosc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                        <DataGridTemplateColumn Header="" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Usuń" Padding="4,2"
+                                    Command="{Binding DataContext.UsunZKolejkiCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>

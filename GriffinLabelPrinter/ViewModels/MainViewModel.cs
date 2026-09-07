@@ -6,8 +6,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.ComponentModel;
-using System.Windows.Data;
 using Wpf.Ui.Input;
 
 namespace GryfLabelManager.ViewModels
@@ -18,19 +16,7 @@ namespace GryfLabelManager.ViewModels
         private readonly IProductCatalogService _productCatalogService;
         private readonly IPrinterService _printerService;
 
-        // cache nieprzefiltrowanej listy towarów - potrzebne do wyszukiwarki,
-        // żeby nie odpytywać CSV/SQL przy każdym wpisanym znaku
         private List<LabelItem> _allProducts = new List<LabelItem>();
-
-        // Widok "podsumowania" - te same obiekty LabelItem co w Items,
-        // ale przefiltrowane do samych zaznaczonych (IsSelected == true).
-        private readonly CollectionViewSource _selectedItemsSource;
-
-        // To jest to, co zbindujesz w XAML jako drugą siatkę na dole okna.
-        public ICollectionView SelectedItems => _selectedItemsSource.View;
-
-        // Licznik zaznaczonych - do wyświetlenia w nagłówku panelu.
-        public int SelectedCount => Items.Count(i => i.IsSelected);
 
         public MainViewModel(ISymfoniaService symfoniaService, IProductCatalogService productCatalogService, IPrinterService printerService)
         {
@@ -39,29 +25,16 @@ namespace GryfLabelManager.ViewModels
             _printerService = printerService;
 
             Documents = new ObservableCollection<DocumentHeader>();
-            Items = new ObservableCollection<LabelItem>();
+            BrowseItems = new ObservableCollection<LabelItem>();
+            PrintQueue = new ObservableCollection<LabelItem>(); // <- NOWE: trwała lista do druku, niezależna od trybu
 
-            _selectedItemsSource = new CollectionViewSource { Source = Items };
-            _selectedItemsSource.Filter += (s, e) => e.Accepted = e.Item is LabelItem item && item.IsSelected;
-
-            // Live filtering - widok sam się przelicza przy zmianie IsSelected
-            // na dowolnym LabelItem (bez tego trzeba by ręcznie wołać Refresh()
-            // po każdym kliknięciu checkboxa "Drukuj" w głównej siatce).
-            if (_selectedItemsSource.View is ICollectionViewLiveShaping liveShaping)
-            {
-                liveShaping.IsLiveFiltering = true;
-                liveShaping.LiveFilteringProperties.Add(nameof(LabelItem.IsSelected));
-            }
-
-            // Gdy filtr coś doda/usunie z widoku, odśwież licznik w nagłówku.
-            _selectedItemsSource.View.CollectionChanged += (s, e) => OnPropertyChanged(nameof(SelectedCount));
             SwitchModeCommand = new AsyncRelayCommand(async param => await SwitchModeAsync((ViewMode)param));
             RefreshCommand = new AsyncRelayCommand(async _ => await RefreshCurrentModeAsync());
             DodajRecznieCommand = new RelayCommands(_ => DodajReczniePozycje(), _ => !string.IsNullOrWhiteSpace(RecznyKod));
-            UsunPozycjeCommand = new RelayCommands(param => Items.Remove((LabelItem)param));
-            DrukujCommand = new RelayCommands(_ => Drukuj(), _ => Items.Any(i => i.IsSelected));
+            DodajZaznaczoneCommand = new RelayCommands(_ => DodajZaznaczoneDoWydruku(), _ => BrowseItems.Any(i => i.IsSelected)); // <- NOWE
+            UsunZKolejkiCommand = new RelayCommands(param => PrintQueue.Remove((LabelItem)param)); // <- zastępuje UsunPozycjeCommand
+            DrukujCommand = new RelayCommands(_ => Drukuj(), _ => PrintQueue.Any());
 
-            // Domyślny tryb startowy
             _ = SwitchModeAsync(ViewMode.Dokumenty);
         }
 
@@ -80,12 +53,11 @@ namespace GryfLabelManager.ViewModels
         private async Task SwitchModeAsync(ViewMode mode)
         {
             CurrentMode = mode;
-            Items.Clear();
+            BrowseItems.Clear(); // czyścimy TYLKO listę przeglądania, PrintQueue zostaje nietknięta
 
             switch (mode)
             {
                 case ViewMode.Dokumenty:
-                    // przy zwykłym przełączeniu trybu korzystamy z cache, jeśli już wczytany raz
                     if (Documents.Count == 0)
                         await LoadDocumentsAsync();
                     break;
@@ -95,25 +67,18 @@ namespace GryfLabelManager.ViewModels
                     break;
 
                 case ViewMode.Reczny:
-                    // pusta siatka - użytkownik dodaje pozycje ręcznie
                     break;
             }
         }
 
-        /// <summary>
-        /// Przycisk "Odśwież" - wymusza ponowne pobranie danych z Symfonii
-        /// dla aktualnie aktywnego trybu (Dokumenty albo Wszystkie towary).
-        /// W trybie Ręcznym nic nie robi, bo nie ma tam danych z bazy.
-        /// </summary>
         private async Task RefreshCurrentModeAsync()
         {
             switch (CurrentMode)
             {
                 case ViewMode.Dokumenty:
                     await LoadDocumentsAsync();
-                    // po odświeżeniu listy dokumentów siatka pozycji też traci sens - czyścimy
                     SelectedDocument = null;
-                    Items.Clear();
+                    BrowseItems.Clear();
                     break;
 
                 case ViewMode.WszystkieTowary:
@@ -131,10 +96,10 @@ namespace GryfLabelManager.ViewModels
 
         private async Task LoadAllProductsAsync()
         {
-            Items.Clear();
-            SearchText = string.Empty; // czyścimy filtr przy odświeżeniu/wejściu do zakładki
+            BrowseItems.Clear();
+            SearchText = string.Empty;
             _allProducts = await _productCatalogService.GetAllProductsAsync();
-            foreach (var p in _allProducts) Items.Add(p);
+            foreach (var p in _allProducts) BrowseItems.Add(p);
         }
 
         // ---------- Wyszukiwarka (tryb: Wszystkie towary) ----------
@@ -143,24 +108,14 @@ namespace GryfLabelManager.ViewModels
         public string SearchText
         {
             get => _searchText;
-            set
-            {
-                _searchText = value;
-                OnPropertyChanged();
-                ApplySearchFilter();
-            }
+            set { _searchText = value; OnPropertyChanged(); ApplySearchFilter(); }
         }
 
-        /// <summary>
-        /// Filtruje po Kod i Nazwa, ignorując wielkość liter oraz białe znaki
-        /// (spacje, tabulatory) zarówno we frazie szukanej, jak i w danych -
-        /// dzięki temu np. "0008 1106" znajdzie "0008110661N".
-        /// </summary>
         private void ApplySearchFilter()
         {
             if (CurrentMode != ViewMode.WszystkieTowary) return;
 
-            Items.Clear();
+            BrowseItems.Clear();
             var query = Normalize(_searchText);
 
             var filtered = string.IsNullOrEmpty(query)
@@ -169,13 +124,12 @@ namespace GryfLabelManager.ViewModels
                     Normalize(p.Kod).Contains(query) ||
                     Normalize(p.Nazwa).Contains(query));
 
-            foreach (var p in filtered) Items.Add(p);
+            foreach (var p in filtered) BrowseItems.Add(p);
         }
 
         private static string Normalize(string value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
-            // usuwamy wszystkie białe znaki i sprowadzamy do wielkich liter
             return new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
         }
 
@@ -187,22 +141,15 @@ namespace GryfLabelManager.ViewModels
         public DocumentHeader SelectedDocument
         {
             get => _selectedDocument;
-            set
-            {
-                _selectedDocument = value;
-                OnPropertyChanged();
-                // Wybór dokumentu w ListBoxie od razu wczytuje jego pozycje do wspólnej siatki
-                _ = LoadDocumentItemsAsync(value);
-            }
+            set { _selectedDocument = value; OnPropertyChanged(); _ = LoadDocumentItemsAsync(value); }
         }
 
         private async Task LoadDocumentItemsAsync(DocumentHeader doc)
         {
             if (doc == null) return;
-            SelectedDocument = doc;
-            Items.Clear();
+            BrowseItems.Clear();
             var pozycje = await _symfoniaService.GetDocumentItemsAsync(doc.Id);
-            foreach (var p in pozycje) Items.Add(p);
+            foreach (var p in pozycje) BrowseItems.Add(p);
         }
 
         // ---------- Tryb: Ręczny wpis ----------
@@ -232,39 +179,71 @@ namespace GryfLabelManager.ViewModels
 
         private void DodajReczniePozycje()
         {
-            Items.Add(new LabelItem
+            // Ręczny wpis trafia od razu do kolejki druku - nie ma etapu "przeglądania"
+            DodajDoKolejki(new LabelItem
             {
                 Kod = RecznyKod?.Trim(),
                 Nazwa = RecznyNazwa?.Trim(),
                 Ilosc = RecznaIlosc,
-                IsSelected = true,
                 IsManual = true
             });
 
-            // czyścimy formularz pod kolejny wpis
             RecznyKod = string.Empty;
             RecznyNazwa = string.Empty;
             RecznaIlosc = 1;
         }
 
-        // ---------- Wspólne dla wszystkich trybów ----------
+        // ---------- Górna siatka (przeglądanie: dokument / kartoteka) ----------
 
-        public ObservableCollection<LabelItem> Items { get; }
+        public ObservableCollection<LabelItem> BrowseItems { get; }
 
-        public System.Windows.Input.ICommand UsunPozycjeCommand { get; }
+        public System.Windows.Input.ICommand DodajZaznaczoneCommand { get; }
+
+        private void DodajZaznaczoneDoWydruku()
+        {
+            foreach (var item in BrowseItems.Where(i => i.IsSelected).ToList())
+            {
+                DodajDoKolejki(new LabelItem
+                {
+                    Kod = item.Kod,
+                    Nazwa = item.Nazwa,
+                    Ilosc = item.Ilosc,
+                    IsManual = item.IsManual
+                });
+                item.IsSelected = false; // odznacz po dodaniu, żeby nie dodać drugi raz przez pomyłkę
+            }
+        }
+
+        /// <summary>
+        /// Dodaje pozycję do kolejki druku. Jeśli Kod już tam jest - sumuje ilość
+        /// zamiast tworzyć duplikat wiersza.
+        /// </summary>
+        private void DodajDoKolejki(LabelItem item)
+        {
+            var istniejacy = PrintQueue.FirstOrDefault(i => i.Kod == item.Kod);
+            if (istniejacy != null)
+                istniejacy.Ilosc += item.Ilosc;
+            else
+                PrintQueue.Add(item);
+        }
+
+        // ---------- Dolna siatka: kolejka do wydruku (trwała, wspólna dla wszystkich trybów) ----------
+
+        public ObservableCollection<LabelItem> PrintQueue { get; }
+
+        public System.Windows.Input.ICommand UsunZKolejkiCommand { get; }
         public System.Windows.Input.ICommand DrukujCommand { get; }
 
         private void Drukuj()
         {
-            var doWydruku = Items.Where(i => i.IsSelected && i.Ilosc > 0).ToList();
-            if (doWydruku.Count == 0)
+            if (PrintQueue.Count == 0)
             {
-                MessageBox.Show("Zaznacz co najmniej jedną pozycję do wydruku.", "GryfLabelManager",
+                MessageBox.Show("Dodaj co najmniej jedną pozycję do wydruku.", "GryfLabelManager",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            _printerService.Print(doWydruku);
+            _printerService.Print(PrintQueue.ToList());
         }
     }
 }

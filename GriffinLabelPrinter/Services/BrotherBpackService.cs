@@ -207,7 +207,10 @@ namespace GryfLabelManager.Services
 
         public void Print(IEnumerable<LabelItem> items)
         {
-            throw new NotImplementedException();
+            foreach (var item in items)
+            {
+                PrintLabel(item.Kod, item.Nazwa, item.Ilosc);
+            }
         }
     }
 }

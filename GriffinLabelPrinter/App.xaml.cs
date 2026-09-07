@@ -11,7 +11,7 @@ namespace GryfLabelManager
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
+           
             // TODO: wczytaj z appsettings.json (Faza 3 z karty projektu) zamiast na sztywno.
             var connectionString = "Server=localhost;Database=Symfonia;Trusted_Connection=True;TrustServerCertificate=True;";
 
@@ -24,7 +24,7 @@ namespace GryfLabelManager
             IProductCatalogService productCatalogService = new CsvProductCatalogService(csvPath);
 
             // TODO: podmień na Twój BrotherBpacService z Fazy 2, gdy będzie gotowy
-            IPrinterService printerService = new MockPrinterService();
+            IPrinterService printerService = new BrotherBpacService();
 
             var mainViewModel = new MainViewModel(symfoniaService, productCatalogService, printerService);
             var mainWindow = new MainWindow(mainViewModel);

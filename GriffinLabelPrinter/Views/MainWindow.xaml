@@ -45,7 +45,9 @@
         </DockPanel>
 
         <!-- ============ TREŚĆ GŁÓWNA ============ -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1"
+              Visibility="{Binding CurrentMode, Converter={StaticResource EnumNotEqualToVisibility}, ConverterParameter=Reczny}">
+
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <!-- wyszukiwarka -->

@@ -130,7 +130,7 @@ namespace GryfLabelManager.ViewModels
         private static string Normalize(string value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
-            return new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
+            return new string(value.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
         }
 
         // ---------- Tryb: Dokumenty PZ/PW ----------

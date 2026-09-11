@@ -31,7 +31,7 @@ namespace GryfLabelManager.ViewModels
             SwitchModeCommand = new AsyncRelayCommand(async param => await SwitchModeAsync((ViewMode)param));
             RefreshCommand = new AsyncRelayCommand(async _ => await RefreshCurrentModeAsync());
             DodajRecznieCommand = new RelayCommands(_ => DodajReczniePozycje(), _ => !string.IsNullOrWhiteSpace(RecznyKod));
-            DodajZaznaczoneCommand = new RelayCommands(_ => DodajZaznaczoneDoWydruku(), _ => BrowseItems.Any(i => i.IsSelected)); // <- NOWE
+            DodajZaznaczoneCommand = new RelayCommands(_ => DodajZaznaczoneDoWydruku(), _ => ZrodloZaznaczen().Any(i => i.IsSelected));
             UsunZKolejkiCommand = new RelayCommands(param => PrintQueue.Remove((LabelItem)param)); // <- zastępuje UsunPozycjeCommand
             DrukujCommand = new RelayCommands(_ => Drukuj(), _ => PrintQueue.Any());
 
@@ -201,7 +201,7 @@ namespace GryfLabelManager.ViewModels
 
         private void DodajZaznaczoneDoWydruku()
         {
-            foreach (var item in BrowseItems.Where(i => i.IsSelected).ToList())
+            foreach (var item in ZrodloZaznaczen().Where(i => i.IsSelected).ToList())
             {
                 DodajDoKolejki(new LabelItem
                 {
@@ -210,7 +210,7 @@ namespace GryfLabelManager.ViewModels
                     Ilosc = item.Ilosc,
                     IsManual = item.IsManual
                 });
-                item.IsSelected = false; // odznacz po dodaniu, żeby nie dodać drugi raz przez pomyłkę
+                item.IsSelected = false;
             }
         }
 
@@ -245,5 +245,15 @@ namespace GryfLabelManager.ViewModels
 
             _printerService.Print(PrintQueue.ToList());
         }
+
+        /// <summary>
+        /// Źródło do sprawdzania/dodawania zaznaczeń. W trybie WszystkieTowary patrzymy
+        /// na _allProducts (cała kartoteka w pamięci), nie na BrowseItems - inaczej
+        /// zaznaczenie towaru "gubiłoby się" po zmianie frazy w wyszukiwarce, mimo że
+        /// w pamięci wciąż jest zaznaczony (BrowseItems to tylko przefiltrowany widok).
+        /// W pozostałych trybach BrowseItems i tak pokazuje wszystko, co jest dostępne.
+        /// </summary>
+        private IEnumerable<LabelItem> ZrodloZaznaczen()
+            => CurrentMode == ViewMode.WszystkieTowary ? _allProducts : BrowseItems;
     }
 }

@@ -1,6 +1,7 @@
 ﻿using GryfLabelManager.Helpers;
 using GryfLabelManager.Models;
 using GryfLabelManager.Services;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -90,17 +91,41 @@ namespace GryfLabelManager.ViewModels
 
         private async Task LoadDocumentsAsync()
         {
-            var docs = await _symfoniaService.GetRecentDocumentsAsync();
-            Documents = new ObservableCollection<DocumentHeader>(docs);
-            OnPropertyChanged(nameof(Documents));
+            try
+            {
+                var docs = await _symfoniaService.GetRecentDocumentsAsync();
+                Documents = new ObservableCollection<DocumentHeader>(docs);
+                OnPropertyChanged(nameof(Documents));
+            }
+            catch (Exception ex)
+            {
+                // Najczęstsza przyczyna na tym etapie: brak/zła konfiguracja connection stringa do SQL.
+                // Nie crashujemy całej aplikacji - pokazujemy komunikat i zostawiamy pustą listę.
+                MessageBox.Show(
+                    $"Nie udało się połączyć z bazą Symfonii.\n\n{ex.Message}",
+                    "Błąd połączenia z bazą danych",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         private async Task LoadAllProductsAsync()
         {
             BrowseItems.Clear();
             SearchText = string.Empty;
-            _allProducts = await _productCatalogService.GetAllProductsAsync();
-            foreach (var p in _allProducts) BrowseItems.Add(p);
+            try
+            {
+                _allProducts = await _productCatalogService.GetAllProductsAsync();
+                foreach (var p in _allProducts) BrowseItems.Add(p);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Nie udało się wczytać listy towarów.\n\n{ex.Message}",
+                    "Błąd wczytywania danych",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         // ---------- Wyszukiwarka (tryb: Wszystkie towary) ----------
@@ -147,10 +172,19 @@ namespace GryfLabelManager.ViewModels
 
         private async Task LoadDocumentItemsAsync(DocumentHeader doc)
         {
-            if (doc == null) return;
-            BrowseItems.Clear();
-            var pozycje = await _symfoniaService.GetDocumentItemsAsync(doc.Id);
-            foreach (var p in pozycje) BrowseItems.Add(p);
+            try
+            {
+                var pozycje = await _symfoniaService.GetDocumentItemsAsync(doc.Id);
+                foreach (var p in pozycje) BrowseItems.Add(p);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Nie udało się pobrać pozycji dokumentu.\n\n{ex.Message}",
+                    "Błąd połączenia z bazą danych",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         // ---------- Tryb: Ręczny wpis ----------

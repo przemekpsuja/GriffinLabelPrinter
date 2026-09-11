@@ -119,29 +119,17 @@
             </StackPanel>
         </Border>
 
-
-        <!-- ============ PODSUMOWANIE - CO JEST ZAZNACZONE DO DRUKU ============ -->
-        <Border Grid.Row="3" Margin="0,12,0,0" BorderBrush="#DDD" BorderThickness="1">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" FontWeight="Bold" Margin="8,6"
-                   Text="{Binding SelectedCount, StringFormat='Do wydruku: {0} pozycji'}"/>
-                <DataGrid ItemsSource="{Binding SelectedItems}" AutoGenerateColumns="False"
-                  IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150"/>
-                        <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*"/>
-                        <DataGridTextColumn Header="Ilość" Binding="{Binding Ilosc}" Width="70"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </DockPanel>
-        </Border>
-
         <!-- NOWA sekcja: kolejka do wydruku -->
         <Border Grid.Row="3" Margin="0,12,0,0" BorderBrush="#DDD" BorderThickness="1">
             <DockPanel>
-                <TextBlock Text="Do wydruku" FontWeight="Bold" Margin="8" DockPanel.Dock="Top"/>
+                <DockPanel DockPanel.Dock="Top" Margin="8">
+                    <TextBlock Text="Do wydruku" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button DockPanel.Dock="Right" Content="Wyczyść listę" Padding="8,4"
+                    HorizontalAlignment="Right"
+                    Command="{Binding WyczyscKolejkeCommand}"/>
+                </DockPanel>
                 <DataGrid ItemsSource="{Binding PrintQueue}" AutoGenerateColumns="False"
-                  CanUserAddRows="False" CanUserDeleteRows="False">
+          CanUserAddRows="False" CanUserDeleteRows="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*" IsReadOnly="True"/>
@@ -150,8 +138,8 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button Content="Usuń" Padding="4,2"
-                                    Command="{Binding DataContext.UsunZKolejkiCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"/>
+                            Command="{Binding DataContext.UsunZKolejkiCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -159,7 +147,7 @@
                 </DataGrid>
             </DockPanel>
         </Border>
-        
+
         <!-- ============ DRUKUJ ============ -->
         <Button Grid.Row="4" Content="DRUKUJ" FontSize="16" FontWeight="Bold" Padding="20,10"
                 Margin="0,12,0,0" HorizontalAlignment="Right"

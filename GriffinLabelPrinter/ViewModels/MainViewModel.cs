@@ -34,6 +34,7 @@ namespace GryfLabelManager.ViewModels
             DodajZaznaczoneCommand = new RelayCommands(_ => DodajZaznaczoneDoWydruku(), _ => ZrodloZaznaczen().Any(i => i.IsSelected));
             UsunZKolejkiCommand = new RelayCommands(param => PrintQueue.Remove((LabelItem)param)); // <- zastępuje UsunPozycjeCommand
             DrukujCommand = new RelayCommands(_ => Drukuj(), _ => PrintQueue.Any());
+            WyczyscKolejkeCommand = new RelayCommands(_ => PrintQueue.Clear(), _ => PrintQueue.Any());
 
             _ = SwitchModeAsync(ViewMode.Dokumenty);
         }
@@ -233,6 +234,7 @@ namespace GryfLabelManager.ViewModels
 
         public System.Windows.Input.ICommand UsunZKolejkiCommand { get; }
         public System.Windows.Input.ICommand DrukujCommand { get; }
+        public System.Windows.Input.ICommand WyczyscKolejkeCommand { get; }
 
         private void Drukuj()
         {

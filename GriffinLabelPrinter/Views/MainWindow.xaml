@@ -80,7 +80,15 @@
             <DataGrid Grid.Row="1" Grid.Column="1" ItemsSource="{Binding BrowseItems}" AutoGenerateColumns="False"
                       CanUserAddRows="False" CanUserDeleteRows="False">
                 <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="Drukuj" Binding="{Binding IsSelected, Mode=TwoWay}" Width="55"/>
+                    <DataGridTemplateColumn Header="Drukuj" Width="55">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <!-- Zwykły CheckBox, nie kolumna edycyjna -> zaznacza się już przy 1. kliknięciu -->
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Ilość" Binding="{Binding Ilosc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>

@@ -35,7 +35,7 @@
 
         <!-- ============ PRZEŁĄCZNIK TRYBU ============ -->
         <DockPanel Grid.Row="1" Margin="0,0,0,12">
-            <ui:Button DockPanel.Dock="Right" Content="⟳ Odśwież" Padding="10,5"
+            <ui:Button DockPanel.Dock="Right" Content="⟳ Odśwież" Appearance="Primary" Padding="10,5"
                     Command="{Binding RefreshCommand}"
                     Visibility="{Binding CurrentMode, Converter={StaticResource EnumNotEqualToVisibility}, ConverterParameter=Reczny}"/>
 
@@ -110,6 +110,7 @@
 
         <!-- Przycisk pod górną siatką (widoczny w Dokumenty / WszystkieTowary) -->
         <ui:Button Grid.Row="3" Content="Dodaj zaznaczone do wydruku →" Padding="10,5"
+                   Appearance="Primary"
             HorizontalAlignment="Right" Margin="0,8,0,0"
             Command="{Binding DodajZaznaczoneCommand}"
             Visibility="{Binding CurrentMode, Converter={StaticResource EnumNotEqualToVisibility}, ConverterParameter=Reczny}"/>
@@ -126,7 +127,7 @@
 
                 <TextBlock Text="Ilość:" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <ui:NumberBox Width="160" Margin="0,0,12,0" Text="{Binding RecznaIlosc, UpdateSourceTrigger=PropertyChanged}"/>
-                <ui:Button Content="Dodaj do listy" Padding="10,4" Command="{Binding DodajRecznieCommand}"/>
+                <ui:Button Content="Dodaj do listy" Padding="10,4" Appearance="Primary" Command="{Binding DodajRecznieCommand}"/>
             </StackPanel>
         </Border>
 
@@ -150,7 +151,7 @@
                         <DataGridTemplateColumn Header="" Width="70">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <ui:Button Content="Usuń" Padding="4,2"
+                                    <ui:Button Content="Usuń" Padding="4,2" Appearance="Primary"
                             Command="{Binding DataContext.UsunZKolejkiCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"/>
                                 </DataTemplate>
@@ -162,7 +163,7 @@
         </Border>
 
         <!-- ============ DRUKUJ ============ -->
-        <ui:Button Grid.Row="5" Content="DRUKUJ" FontSize="16" FontWeight="Bold" Padding="20,10"
+        <ui:Button Grid.Row="5" Content="DRUKUJ" Appearance="Primary" FontSize="16" FontWeight="Bold" Padding="20,10"
                 Margin="0,12,0,0" HorizontalAlignment="Right"
                 Command="{Binding DrukujCommand}"/>
     </Grid>

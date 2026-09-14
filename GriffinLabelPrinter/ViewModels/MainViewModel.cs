@@ -111,12 +111,10 @@ namespace GryfLabelManager.ViewModels
 
         private async Task LoadAllProductsAsync()
         {
-            BrowseItems.Clear();
-            SearchText = string.Empty;
+            List<LabelItem> products;
             try
             {
-                _allProducts = await _productCatalogService.GetAllProductsAsync();
-                foreach (var p in _allProducts) BrowseItems.Add(p);
+                products = await _productCatalogService.GetAllProductsAsync();
             }
             catch (Exception ex)
             {
@@ -125,7 +123,18 @@ namespace GryfLabelManager.ViewModels
                     "Błąd wczytywania danych",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
+                return;
             }
+
+            _allProducts = products;
+
+            // Reset directly on the backing field, not through the SearchText setter,
+            // so ApplySearchFilter() doesn't run mid-load against stale/half-loaded data.
+            _searchText = string.Empty;
+            OnPropertyChanged(nameof(SearchText));
+
+            BrowseItems.Clear();
+            foreach (var p in _allProducts) BrowseItems.Add(p);
         }
 
         // ---------- Wyszukiwarka (tryb: Wszystkie towary) ----------

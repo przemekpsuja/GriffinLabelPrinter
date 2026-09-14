@@ -3,6 +3,7 @@ using GryfLabelManager.ViewModels;
 using GryfLabelManager.Views;
 using System;
 using System.Windows;
+using System.Windows.Media;
 using Wpf.Ui.Appearance;
 
 namespace GryfLabelManager
@@ -28,6 +29,9 @@ namespace GryfLabelManager
 
             // TODO: podmień na Twój BrotherBpacService z Fazy 2, gdy będzie gotowy
             IPrinterService printerService = new BrotherBpacService();
+            // Sets the app-wide accent color to the classic Windows blue (#0078D4)
+
+            ApplicationAccentColorManager.Apply(Color.FromRgb(0x00, 0x78, 0xD4));
 
             var mainViewModel = new MainViewModel(symfoniaService, productCatalogService, printerService);
             var mainWindow = new MainWindow(mainViewModel);

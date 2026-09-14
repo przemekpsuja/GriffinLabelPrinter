@@ -1,9 +1,9 @@
-﻿using System.Windows;
+﻿using Wpf.Ui.Controls;
 using GryfLabelManager.ViewModels;
 
 namespace GryfLabelManager.Views
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : FluentWindow
     {
         public MainWindow(MainViewModel viewModel)
         {

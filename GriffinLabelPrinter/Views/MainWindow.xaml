@@ -5,8 +5,10 @@
         xmlns:helpers="clr-namespace:GryfLabelManager.Helpers"
         xmlns:models="clr-namespace:GryfLabelManager.Models"
         Title="GryfLabelManager" Height="650" Width="950"
+        Icon="pack://application:,,,/Resources/app.ico"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
+
 
     <ui:FluentWindow.Resources>
         <helpers:EnumToVisibilityConverter x:Key="EnumToVisibility"/>
@@ -14,7 +16,7 @@
         <helpers:EnumNotEqualToVisibilityConverter x:Key="EnumNotEqualToVisibility"/>
     </ui:FluentWindow.Resources>
 
-    <Grid>
+    <Grid Margin="20,0,20,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- 0: pasek tytułu -->
@@ -30,8 +32,12 @@
             <!-- 5: przycisk DRUKUJ -->
         </Grid.RowDefinitions>
 
-        <!-- Własny pasek tytułu — wymagany, gdy ExtendsContentIntoTitleBar="True" -->
-        <ui:TitleBar Title="GryfLabelManager" Grid.Row="0"/>
+<ui:TitleBar Grid.Row="0" Title="GryfLabelManager" Padding="0">
+    <ui:TitleBar.Icon>
+        <ui:ImageIcon Source="pack://application:,,,/Resources/app.ico" 
+                      Margin="0,0,8,0" />
+    </ui:TitleBar.Icon>
+</ui:TitleBar>
 
         <!-- ============ PRZEŁĄCZNIK TRYBU ============ -->
         <DockPanel Grid.Row="1" Margin="0,0,0,12">
@@ -89,8 +95,7 @@
             <!-- Wspólna siatka pozycji do druku - ta sama dla wszystkich 3 trybów -->
             <DataGrid Grid.Row="2" Grid.Column="1" ItemsSource="{Binding BrowseItems}" AutoGenerateColumns="False"
                         CanUserAddRows="False" CanUserDeleteRows="False"
-                        RowBackground="White"
-                        AlternatingRowBackground="#F5F5F5">
+                        RowBackground="White" RowHeight="36" AlternatingRowBackground="#F5F5F5" BorderThickness="0">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Header="Drukuj" Width="55">
                         <DataGridTemplateColumn.CellTemplate>
@@ -141,7 +146,7 @@
                     Command="{Binding WyczyscKolejkeCommand}"/>
                 </DockPanel>
                 <DataGrid ItemsSource="{Binding PrintQueue}" AutoGenerateColumns="False"
-                    CanUserAddRows="False" CanUserDeleteRows="False"
+                    CanUserAddRows="False" CanUserDeleteRows="False" RowHeight="36"
                     RowBackground="White"
                     AlternatingRowBackground="#F5F5F5">
                     <DataGrid.Columns>
@@ -163,8 +168,8 @@
         </Border>
 
         <!-- ============ DRUKUJ ============ -->
-        <ui:Button Grid.Row="5" Content="DRUKUJ" Appearance="Primary" FontSize="16" FontWeight="Bold" Padding="20,10"
+        <ui:Button Grid.Row="5" Content="DRUKUJ" Appearance="Primary" FontSize="16" FontWeight="Bold" Padding="5"
                 Margin="0,12,0,0" HorizontalAlignment="Right"
-                Command="{Binding DrukujCommand}"/>
+                Command="{Binding DrukujCommand}" Height="34"/>
     </Grid>
 </ui:FluentWindow>

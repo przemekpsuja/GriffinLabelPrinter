@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +24,11 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- To jest kluczowy wpis, który wstrzykuje ikonę do zasobów okna -->
+    <Resource Include="Resources\app.ico" />
   </ItemGroup>
 
   <ItemGroup>

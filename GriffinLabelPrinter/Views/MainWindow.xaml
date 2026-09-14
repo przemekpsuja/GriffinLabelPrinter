@@ -88,7 +88,9 @@
 
             <!-- Wspólna siatka pozycji do druku - ta sama dla wszystkich 3 trybów -->
             <DataGrid Grid.Row="2" Grid.Column="1" ItemsSource="{Binding BrowseItems}" AutoGenerateColumns="False"
-                      CanUserAddRows="False" CanUserDeleteRows="False">
+                        CanUserAddRows="False" CanUserDeleteRows="False"
+                        RowBackground="White"
+                        AlternatingRowBackground="#F5F5F5">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Header="Drukuj" Width="55">
                         <DataGridTemplateColumn.CellTemplate>
@@ -105,7 +107,7 @@
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
-        
+
         <!-- Przycisk pod górną siatką (widoczny w Dokumenty / WszystkieTowary) -->
         <ui:Button Grid.Row="3" Content="Dodaj zaznaczone do wydruku →" Padding="10,5"
             HorizontalAlignment="Right" Margin="0,8,0,0"
@@ -138,7 +140,9 @@
                     Command="{Binding WyczyscKolejkeCommand}"/>
                 </DockPanel>
                 <DataGrid ItemsSource="{Binding PrintQueue}" AutoGenerateColumns="False"
-          CanUserAddRows="False" CanUserDeleteRows="False">
+                    CanUserAddRows="False" CanUserDeleteRows="False"
+                    RowBackground="White"
+                    AlternatingRowBackground="#F5F5F5">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="150" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Nazwa" Binding="{Binding Nazwa}" Width="*" IsReadOnly="True"/>

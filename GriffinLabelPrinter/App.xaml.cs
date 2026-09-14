@@ -1,8 +1,9 @@
-﻿using System;
-using System.Windows;
-using GryfLabelManager.Services;
+﻿using GryfLabelManager.Services;
 using GryfLabelManager.ViewModels;
 using GryfLabelManager.Views;
+using System;
+using System.Windows;
+using Wpf.Ui.Appearance;
 
 namespace GryfLabelManager
 {
@@ -11,7 +12,9 @@ namespace GryfLabelManager
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-           
+            ApplicationThemeManager.ApplySystemTheme();
+
+
             // TODO: wczytaj z appsettings.json (Faza 3 z karty projektu) zamiast na sztywno.
             var connectionString = "Server=localhost;Database=Symfonia;Trusted_Connection=True;TrustServerCertificate=True;";
 
@@ -28,6 +31,11 @@ namespace GryfLabelManager
 
             var mainViewModel = new MainViewModel(symfoniaService, productCatalogService, printerService);
             var mainWindow = new MainWindow(mainViewModel);
+
+            // Nasłuchuje zmiany motywu Windows (Ustawienia -> Personalizacja -> Kolory)
+            // i automatycznie przełącza appkę bez restartu.
+            SystemThemeWatcher.Watch(mainWindow);
+
             mainWindow.Show();
         }
     }

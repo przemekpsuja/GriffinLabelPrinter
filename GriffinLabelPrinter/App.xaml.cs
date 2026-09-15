@@ -2,8 +2,10 @@
 using GryfLabelManager.ViewModels;
 using GryfLabelManager.Views;
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using Microsoft.Extensions.Configuration;
 using Wpf.Ui.Appearance;
 
 namespace GryfLabelManager
@@ -15,22 +17,16 @@ namespace GryfLabelManager
             base.OnStartup(e);
             ApplicationThemeManager.ApplySystemTheme();
 
+            var connectionString = LoadConnectionString();
 
-            // TODO: wczytaj z appsettings.json (Faza 3 z karty projektu) zamiast na sztywno.
-            var connectionString = "Server=localhost;Database=Symfonia;Trusted_Connection=True;TrustServerCertificate=True;";
+            var symfoniaServiceImpl = new SymfoniaService(connectionString);
 
-            ISymfoniaService symfoniaService = new SymfoniaService(connectionString);
+            ISymfoniaService symfoniaService = symfoniaServiceImpl;
+            IProductCatalogService productCatalogService = symfoniaServiceImpl;
 
-            // Tymczasowo (brak dostępu do SQL) - towary czytane z pliku CSV w folderze template.
-            // Docelowo: spraw, żeby SymfoniaService implementował też IProductCatalogService
-            // (ma już GetAllProductsAsync) i podmień poniższą linię na tamtą implementację.
-            var csvPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "towary.csv");
-            IProductCatalogService productCatalogService = new CsvProductCatalogService(csvPath);
-
-            // TODO: podmień na Twój BrotherBpacService z Fazy 2, gdy będzie gotowy
             IPrinterService printerService = new BrotherBpacService();
-            // Sets the app-wide accent color to the classic Windows blue (#0078D4)
 
+            // Sets the app-wide accent color to the classic Windows blue (#0078D4)
             ApplicationAccentColorManager.Apply(Color.FromRgb(0x00, 0x78, 0xD4));
 
             var mainViewModel = new MainViewModel(symfoniaService, productCatalogService, printerService);
@@ -41,6 +37,45 @@ namespace GryfLabelManager
             SystemThemeWatcher.Watch(mainWindow);
 
             mainWindow.Show();
+        }
+
+        /// <summary>
+        /// Reads the Symfonia connection string from appsettings.json.
+        /// Shows a clear error instead of crashing silently if the file
+        /// (or the expected key) is missing - this is the file every new
+        /// dev has to create locally from appsettings.example.json.
+        /// </summary>
+        private static string LoadConnectionString()
+        {
+            var basePath = AppDomain.CurrentDomain.BaseDirectory;
+            var configPath = Path.Combine(basePath, "appsettings.json");
+
+            if (!File.Exists(configPath))
+            {
+                MessageBox.Show(
+                    "Brak pliku appsettings.json.\n\n" +
+                    "Skopiuj appsettings.example.json -> appsettings.json " +
+                    "i uzupełnij dane połączenia do bazy Symfonii.",
+                    "Brak konfiguracji", MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(1);
+            }
+
+            var config = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: false)
+                .Build();
+
+            var connectionString = config.GetConnectionString("Symfonia");
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                MessageBox.Show(
+                    "W appsettings.json brakuje klucza ConnectionStrings:Symfonia.",
+                    "Błędna konfiguracja", MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(1);
+            }
+
+            return connectionString!;
         }
     }
 }

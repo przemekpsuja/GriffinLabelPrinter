@@ -5,6 +5,13 @@ using GryfLabelManager.Models;
 
 namespace GryfLabelManager.Services
 {
+    /// <summary>
+    /// Reads warehouse documents and items directly from the Symfonia MS SQL
+    /// database. Confirmed real schema (see Struktura_SQL.txt):
+    ///   HM.MG - document headers (id, kod, typ_dk, nazwa, data)
+    ///   HM.MZ - document lines (id, super -> MG.id, idtw -> TW.id, kod, ilosc, cena)
+    ///   HM.TW - product catalog (id, kod, nazwa)
+    /// </summary>
     public class SymfoniaService : ISymfoniaService, IProductCatalogService
     {
         private readonly string _connectionString;
@@ -14,17 +21,16 @@ namespace GryfLabelManager.Services
             _connectionString = connectionString;
         }
 
+        /// <summary>Loads the 50 most recent PZ/PW document headers from HM.MG.</summary>
         public async Task<List<DocumentHeader>> GetRecentDocumentsAsync()
         {
             var result = new List<DocumentHeader>();
 
-            // UWAGA: nazwy kolumn Numer/Typ/Data to założenie na podstawie opisu projektu.
-            // Dopasuj do rzeczywistych nazw kolumn w Model.Dokumenty (sprawdź np. w SSMS).
             const string sql = @"
-                SELECT TOP 50 d.Id, d.Numer, d.Typ, d.Data
-                FROM Model.Dokumenty d
-                WHERE d.Typ IN ('PZ', 'PW')
-                ORDER BY d.Data DESC";
+                SELECT TOP 50 id, kod, typ_dk, nazwa, data
+                FROM HM.MG
+                WHERE typ_dk IN ('PZ', 'PW')
+                ORDER BY data DESC";
 
             using var conn = new SqlConnection(_connectionString);
             using var cmd = new SqlCommand(sql, conn);
@@ -35,57 +41,61 @@ namespace GryfLabelManager.Services
                 result.Add(new DocumentHeader
                 {
                     Id = reader.GetInt32(0),
-                    Numer = reader.GetString(1),
-                    Typ = reader.GetString(2),
-                    Data = reader.GetDateTime(3)
+                    Numer = reader.GetString(1),   // HM.MG.kod - user-facing document number, e.g. PZ/2026/09/15/72
+                    Typ = reader.GetString(2),     // HM.MG.typ_dk - 'PZ' or 'PW'
+                    Data = reader.GetDateTime(4)
                 });
             }
             return result;
         }
 
+        /// <summary>
+        /// Loads all lines for a given document from HM.MZ, joined with HM.TW
+        /// for the full product name. ilosc can be negative in Symfonia (depending
+        /// on document direction), so it's wrapped in ABS().
+        /// </summary>
         public async Task<List<LabelItem>> GetDocumentItemsAsync(int documentId)
         {
             var result = new List<LabelItem>();
 
-            // Zapytanie z karty projektu (Faza 4 z opisu), sparametryzowane przeciw SQL injection
             const string sql = @"
                 SELECT
-                    t.Kod AS KodTowaru,
-                    t.Nazwa AS NazwaTowaru,
-                    CAST(p.Ilosc AS INT) AS IloscDoDruku
-                FROM Model.PozycjeDokumentu p
-                INNER JOIN Model.Dokumenty d ON p.IdDokumentu = d.Id
-                INNER JOIN Model.Towary t ON p.IdTowaru = t.Id
-                WHERE d.Id = @IdWybranegoDokumentu";
+                    mz.kod AS KodTowaru,
+                    tw.nazwa AS NazwaTowaru,
+                    CAST(ABS(mz.ilosc) AS INT) AS Ilosc
+                FROM HM.MZ mz
+                JOIN HM.TW tw ON mz.idtw = tw.id
+                WHERE mz.super = @IdDokumentu";
 
             using var conn = new SqlConnection(_connectionString);
             using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@IdWybranegoDokumentu", documentId);
+            cmd.Parameters.AddWithValue("@IdDokumentu", documentId);
             await conn.OpenAsync();
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 result.Add(new LabelItem
                 {
-                    Kod = reader.GetString(0),      // String! - zachowujemy wiodące zera
+                    Kod = reader.GetString(0),      // string! - keeps leading zeros, e.g. 0008110661N
                     Nazwa = reader.GetString(1),
                     Ilosc = reader.GetInt32(2),
-                    IsSelected = false,              // magazynier sam zaznacza co drukować
+                    IsSelected = false,              // warehouse worker checks items to print manually
                     IsManual = false
                 });
             }
             return result;
         }
 
+        /// <summary>Loads the full product catalog from HM.TW for the "All products" tab.</summary>
         public async Task<List<LabelItem>> GetAllProductsAsync()
         {
             var result = new List<LabelItem>();
 
-            // TOP 5000 jako bezpiecznik - przy bardzo dużej kartotece rozważ filtr/wyszukiwarkę w UI
+            // TOP 5000 as a safety cap - with a very large catalog, consider filtering in SQL too
             const string sql = @"
-                SELECT TOP 5000 t.Kod, t.Nazwa
-                FROM Model.Towary t
-                ORDER BY t.Nazwa";
+                SELECT TOP 5000 kod, nazwa
+                FROM HM.TW
+                ORDER BY nazwa";
 
             using var conn = new SqlConnection(_connectionString);
             using var cmd = new SqlCommand(sql, conn);

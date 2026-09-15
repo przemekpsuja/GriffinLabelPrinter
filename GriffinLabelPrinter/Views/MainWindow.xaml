@@ -4,7 +4,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:helpers="clr-namespace:GryfLabelManager.Helpers"
         xmlns:models="clr-namespace:GryfLabelManager.Models"
-        Title="GryfLabelManager" Height="650" Width="950"
+        Title="GriffinLabelManager" Height="650" Width="950"
         Icon="pack://application:,,,/Resources/app.ico"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">

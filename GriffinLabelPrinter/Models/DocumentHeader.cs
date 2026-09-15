@@ -10,11 +10,11 @@ namespace GryfLabelManager.Models
     public class DocumentHeader
     {
         public int Id { get; set; }
-        public string Numer { get; set; }
-        public string Typ { get; set; }   // "PZ" albo "PW"
+        public string Numer { get; set; }   // HM.MG.kod - user-facing document number
+        public string Typ { get; set; }     // HM.MG.typ_dk - 'PZ' or 'PW'
+        public string Nazwa { get; set; }   // HM.MG.nazwa - document type label
         public DateTime Data { get; set; }
 
-        // Wyświetlane wprost w ListBoxie/ComboBoxie w UI
         public override string ToString() => $"{Typ}  {Numer}   ({Data:yyyy-MM-dd})";
     }
 }

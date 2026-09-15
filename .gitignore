@@ -107,3 +107,6 @@ PublishScripts/
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+# App configuration (contains real DB credentials — copy from appsettings.example.json)
+appsettings.json

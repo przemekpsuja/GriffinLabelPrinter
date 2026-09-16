@@ -30,7 +30,7 @@ namespace GryfLabelManager.Services
                 SELECT TOP 50 id, kod, typ_dk, nazwa, data
                 FROM HM.MG
                 WHERE typ_dk IN ('PZ', 'PW')
-                ORDER BY data DESC";
+                ORDER BY id DESC";
 
             using var conn = new SqlConnection(_connectionString);
             using var cmd = new SqlCommand(sql, conn);

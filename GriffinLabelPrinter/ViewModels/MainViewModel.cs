@@ -172,28 +172,42 @@ namespace GryfLabelManager.ViewModels
 
         public ObservableCollection<DocumentHeader> Documents { get; private set; }
 
+        private int _documentLoadRequestId;
         private DocumentHeader _selectedDocument;
         public DocumentHeader SelectedDocument
         {
             get => _selectedDocument;
-            set { _selectedDocument = value; OnPropertyChanged(); _ = LoadDocumentItemsAsync(value); }
+            set
+            {
+                _selectedDocument = value;
+                OnPropertyChanged();
+                _ = LoadDocumentItemsAsync(value); // fire-and-forget, guarded below
+            }
         }
 
+        /// <summary>
+        /// Loads line items for the given document. Guarded against out-of-order
+        /// completion: if the user selects another document before this finishes,
+        /// the stale result is discarded instead of being appended to the grid.
+        /// </summary>
         private async Task LoadDocumentItemsAsync(DocumentHeader doc)
         {
-            try
-            {
-                var pozycje = await _symfoniaService.GetDocumentItemsAsync(doc.Id);
-                foreach (var p in pozycje) BrowseItems.Add(p);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Nie udało się pobrać pozycji dokumentu.\n\n{ex.Message}",
-                    "Błąd połączenia z bazą danych",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
+            if (doc == null) return;
+
+            // NOTE: removed "SelectedDocument = doc;" here - it was re-entering
+            // the setter above and launching a second, duplicate load for the
+            // same document on every click.
+
+            int requestId = ++_documentLoadRequestId;
+
+            var pozycje = await _symfoniaService.GetDocumentItemsAsync(doc.Id);
+
+            // If another document was selected while we were waiting for SQL,
+            // this response is stale - discard it instead of touching the grid.
+            if (requestId != _documentLoadRequestId) return;
+
+            BrowseItems.Clear();
+            foreach (var p in pozycje) BrowseItems.Add(p);
         }
 
         // ---------- Tryb: Ręczny wpis ----------

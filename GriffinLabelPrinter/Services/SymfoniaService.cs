@@ -21,13 +21,13 @@ namespace GryfLabelManager.Services
             _connectionString = connectionString;
         }
 
-        /// <summary>Loads the 50 most recent PZ/PW document headers from HM.MG.</summary>
+        /// <summary>Loads the 150 most recent PZ/PW document headers from HM.MG.</summary>
         public async Task<List<DocumentHeader>> GetRecentDocumentsAsync()
         {
             var result = new List<DocumentHeader>();
 
             const string sql = @"
-                SELECT TOP 50 id, kod, typ_dk, nazwa, data
+                SELECT TOP 150 id, kod, typ_dk, nazwa, data
                 FROM HM.MG
                 WHERE typ_dk IN ('PZ', 'PW')
                 ORDER BY id DESC";
@@ -93,9 +93,9 @@ namespace GryfLabelManager.Services
 
             // TOP 5000 as a safety cap - with a very large catalog, consider filtering in SQL too
             const string sql = @"
-                SELECT TOP 5000 kod, nazwa
+                SELECT kod, nazwa
                 FROM HM.TW
-                ORDER BY nazwa";
+                ORDER BY kod";
 
             using var conn = new SqlConnection(_connectionString);
             using var cmd = new SqlCommand(sql, conn);

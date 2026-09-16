@@ -15,6 +15,13 @@ namespace GryfLabelManager
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            DispatcherUnhandledException += (s, ex) =>
+            {
+                MessageBox.Show(ex.Exception.ToString(), "Nieobsłużony błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                ex.Handled = true;
+            };
+
             ApplicationThemeManager.ApplySystemTheme();
 
             var connectionString = LoadConnectionString();

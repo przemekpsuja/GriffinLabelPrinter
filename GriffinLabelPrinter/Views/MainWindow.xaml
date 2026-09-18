@@ -83,7 +83,7 @@
             </DockPanel>
 
             <!-- Lewa kolumna: lista dokumentów PZ/PW (widoczna tylko w trybie Dokumenty) -->
-            <Border Grid.Row="1" Grid.Column="0" Width="230" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1"
+            <Border Grid.Row="1" Grid.Column="0" Width="400" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1"
                     Visibility="{Binding CurrentMode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Dokumenty}">
                 <DockPanel>
                     <TextBlock Text="Dokumenty" FontWeight="Bold" Margin="8" DockPanel.Dock="Top"/>

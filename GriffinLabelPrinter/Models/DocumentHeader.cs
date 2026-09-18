@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
+using System.Windows.Shapes;
 
 namespace GryfLabelManager.Models
 {
@@ -14,7 +16,8 @@ namespace GryfLabelManager.Models
         public string Typ { get; set; }     // HM.MG.typ_dk - 'PZ' or 'PW'
         public string Nazwa { get; set; }   // HM.MG.nazwa - document type label
         public DateTime Data { get; set; }
+        public string Kontrahent { get; set; }
 
-        public override string ToString() => $"{Typ}  {Numer}   ({Data:yyyy-MM-dd})";
+        public override string ToString() => $"{Numer}      {Kontrahent}        ({Data:yyyy-MM-dd})";
     }
 }

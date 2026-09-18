@@ -26,11 +26,11 @@ namespace GryfLabelManager.Services
         {
             var result = new List<DocumentHeader>();
 
-            const string sql = @"
-                SELECT TOP 150 id, kod, typ_dk, nazwa, data
-                FROM HM.MG
-                WHERE typ_dk IN ('PZ', 'PW')
-                ORDER BY id DESC";
+            const string sql = @"SELECT TOP 50 mg.id, mg.kod, mg.typ_dk, mg.nazwa, mg.data, sc.Name AS Kontrahent
+                    FROM HM.MG mg
+                    LEFT JOIN SSCommon.STContractors sc ON mg.khid = sc.Id
+                    WHERE mg.typ_dk IN ('PZ', 'PW')
+                    ORDER BY mg.data DESC;";
 
             using var conn = new SqlConnection(_connectionString);
             using var cmd = new SqlCommand(sql, conn);
@@ -43,7 +43,8 @@ namespace GryfLabelManager.Services
                     Id = reader.GetInt32(0),
                     Numer = reader.GetString(1),   // HM.MG.kod - user-facing document number, e.g. PZ/2026/09/15/72
                     Typ = reader.GetString(2),     // HM.MG.typ_dk - 'PZ' or 'PW'
-                    Data = reader.GetDateTime(4)
+                    Data = reader.GetDateTime(4),
+                    Kontrahent = reader.IsDBNull(5) ? "—" : reader.GetString(5)
                 });
             }
             return result;
